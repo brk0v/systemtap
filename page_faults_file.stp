@@ -1,0 +1,43 @@
+#! /usr/bin/env stap
+
+/*
+ * Viacheslav Biriukov 2013
+ * 
+ * This copyrighted material is made available to anyone wishing to use,
+ * modify, copy, or redistribute it subject to the terms and conditions
+ * of the GNU General Public License v.2.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Print out pathes to mmap files, that cause major page faults.
+ *
+ * Useful in cases when you're looking for files for warm up in a memory
+ * before start (eg mongodb files, kioto cabinet, homebrew data base).
+ * 
+ * Using with custom command:
+ *
+ *    stap ./page_faults_file.stp -c 'firefox'
+ *
+ * using with running app with PID: 
+ * 
+ *    stap ./page_faults_file.stp -x 2412
+ *
+ */
+
+global targetpid
+
+probe begin {
+  targetpid = target()
+}
+
+probe kernel.function("page_cache_read") {
+    parent = @cast($file, "file")->f_path->dentry->d_parent;
+    fname = __file_filename($file)
+    path = reverse_path_walk(parent) ."/".fname
+    printf("%s\n", path)
+}
+
+probe end {
+    delete targetpid
+}
