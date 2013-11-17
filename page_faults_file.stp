@@ -32,10 +32,12 @@ probe begin {
 }
 
 probe kernel.function("page_cache_read") {
-    parent = @cast($file, "file")->f_path->dentry->d_parent;
-    fname = __file_filename($file)
-    path = reverse_path_walk(parent) ."/".fname
-    printf("%s\n", path)
+    if (targetpid == pid()) {
+        parent = @cast($file, "file")->f_path->dentry->d_parent;
+        fname = __file_filename($file)
+        path = reverse_path_walk(parent) ."/".fname
+        printf("%s\n", path)
+    }
 }
 
 probe end {
